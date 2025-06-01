@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор стоимости ремонтных работ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .mode-buttons {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .mode-buttons button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        .mode-buttons button:hover {
+            background-color: #45a049;
+        }
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .action-buttons button {
+            padding: 8px 16px;
+            cursor: pointer;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        .action-buttons button:hover {
+            background-color: #0b7dda;
+        }
+        .info-area {
+            border: 1px solid #ddd;
+            padding: 15px;
+            min-height: 200px;
+            border-radius: 4px;
+            background-color: #fafafa;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        form div {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        .order-item {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            background-color: white;
+        }
+        .login-form {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .login-form input {
+            margin-bottom: 15px;
+        }
+        .login-form button {
+            width: 100%;
+        }
+        .hidden {
+            display: none;
+        }
+        #logout-btn {
+            background-color: #f44336;
+            float: right;
+        }
+        #logout-btn:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-container" class="login-form">
+        <h2>Вход в систему</h2>
+        <div>
+            <label for="username">Логин:</label>
+            <input type="text" id="username" required>
+        </div>
+        <div>
+            <label for="password">Пароль:</label>
+            <input type="password" id="password" required>
+        </div>
+        <button id="login-btn">Войти</button>
+    </div>
+
+    <div id="app-container" class="container hidden">
+        <button id="logout-btn">Выйти</button>
+        <h1>Калькулятор стоимости ремонтных работ</h1>
+        
+        <div class="mode-buttons">
+            <button id="user-mode-btn">Режим пользователя</button>
+            <button id="admin-mode-btn">Режим администратора</button>
+        </div>
+        
+        <div id="user-buttons" class="action-buttons">
+            <button id="create-order-btn">Создать заказ</button>
+            <button id="view-orders-btn">Просмотреть заказы</button>
+        </div>
+        
+        <div id="admin-buttons" class="action-buttons" style="display: none;">
+            <button id="add-client-btn">Добавить клиента</button>
+            <button id="add-contractor-btn">Добавить подрядчика</button>
+            <button id="add-object-type-btn">Добавить тип объекта</button>
+            <button id="add-material-btn">Добавить материал</button>
+            <button id="view-clients-btn">Просмотреть клиентов</button>
+            <button id="view-contractors-btn">Просмотреть подрядчиков</button>
+            <button id="view-object-types-btn">Просмотреть типы объектов</button>
+            <button id="view-materials-btn">Просмотреть материалы</button>
+        </div>
+        
+        <div id="info-area" class="info-area"></div>
+    </div>
+
+    <!-- Модальные окна -->
+    <div id="add-client-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Добавить клиента</h2>
+            <form id="add-client-form">
+                <div>
+                    <label for="client-name">Имя:</label>
+                    <input type="text" id="client-name" required>
+                </div>
+                <div>
+                    <label for="client-phone">Телефон:</label>
+                    <input type="text" id="client-phone" required>
+                </div>
+                <button type="submit">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="add-contractor-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Добавить подрядчика</h2>
+            <form id="add-contractor-form">
+                <div>
+                    <label for="contractor-name">Имя:</label>
+                    <input type="text" id="contractor-name" required>
+                </div>
+                <div>
+                    <label for="contractor-specialization">Специализация:</label>
+                    <input type="text" id="contractor-specialization" required>
+                </div>
+                <button type="submit">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="add-object-type-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Добавить тип объекта</h2>
+            <form id="add-object-type-form">
+                <div>
+                    <label for="object-type-name">Название:</label>
+                    <input type="text" id="object-type-name" required>
+                </div>
+                <button type="submit">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="add-material-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Добавить материал</h2>
+            <form id="add-material-form">
+                <div>
+                    <label for="material-name">Название:</label>
+                    <input type="text" id="material-name" required>
+                </div>
+                <div>
+                    <label for="material-price">Цена:</label>
+                    <input type="number" step="0.01" id="material-price" required>
+                </div>
+                <button type="submit">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="create-order-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Создать заказ</h2>
+            <form id="create-order-form">
+                <div>
+                    <label for="order-client">Клиент:</label>
+                    <select id="order-client" required></select>
+                </div>
+                <div>
+                    <label for="order-contractor">Подрядчик:</label>
+                    <select id="order-contractor" required></select>
+                </div>
+                <div>
+                    <label for="order-object-type">Тип объекта:</label>
+                    <select id="order-object-type" required></select>
+                </div>
+                <div>
+                    <label for="order-area">Площадь (м²):</label>
+                    <input type="number" step="0.01" id="order-area" required>
+                </div>
+                <div>
+                    <label for="order-materials">Материалы:</label>
+                    <select id="order-materials" multiple style="height: 100px;"></select>
+                </div>
+                <button type="submit">Создать</button>
+            </form>
+            <div id="order-cost-result" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Глобальные переменные для хранения данных
+        let clients = {};
+        let contractors = {};
+        let objectTypes = {};
+        let materials = {};
+        let orders = {};
+        let currentMode = 'user';
+        let currentUser = null;
+        let nextId = 1;
+
+        // Инициализация приложения
+        document.addEventListener('DOMContentLoaded', () => {
+            // Загрузка данных из localStorage
+            loadFromLocalStorage();
+            
+            // Если нет данных, создаем тестовые
+            if (Object.keys(clients).length === 0) {
+                initializeTestData();
+            }
+            
+            setupEventListeners();
+            checkAuth();
+        });
+
+        // Загрузка данных из localStorage
+        function loadFromLocalStorage() {
+            clients = JSON.parse(localStorage.getItem('clients')) || {};
+            contractors = JSON.parse(localStorage.getItem('contractors')) || {};
+            objectTypes = JSON.parse(localStorage.getItem('objectTypes')) || {};
+            materials = JSON.parse(localStorage.getItem('materials')) || {};
+            orders = JSON.parse(localStorage.getItem('orders')) || {};
+            
+            // Находим максимальный ID для генерации новых
+            const allIds = [
+                ...Object.keys(clients).map(Number),
+                ...Object.keys(contractors).map(Number),
+                ...Object.keys(objectTypes).map(Number),
+                ...Object.keys(materials).map(Number),
+                ...Object.keys(orders).map(Number)
+            ];
+            
+            nextId = allIds.length > 0 ? Math.max(...allIds) + 1 : 1;
+        }
+
+        // Сохранение данных в localStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('clients', JSON.stringify(clients));
+            localStorage.setItem('contractors', JSON.stringify(contractors));
+            localStorage.setItem('objectTypes', JSON.stringify(objectTypes));
+            localStorage.setItem('materials', JSON.stringify(materials));
+            localStorage.setItem('orders', JSON.stringify(orders));
+        }
+
+        // Инициализация тестовых данных
+        function initializeTestData() {
+            // Тестовые клиенты
+            clients = {
+                1: { id: 1, name: "Иванов Иван", phone: "+79123456789" },
+                2: { id: 2, name: "Петров Петр", phone: "+79234567890" }
+            };
+            
+            // Тестовые подрядчики
+            contractors = {
+                1: { id: 1, name: "ООО РемонтСервис", specialization: "Косметический ремонт" },
+                2: { id: 2, name: "ИП Сидоров", specialization: "Капитальный ремонт" }
+            };
+            
+            // Тестовые типы объектов
+            objectTypes = {
+                1: { id: 1, name: "Квартира" },
+                2: { id: 2, name: "Офис" }
+            };
+            
+            // Тестовые материалы
+            materials = {
+                1: { id: 1, name: "Ламинат", price: 1500 },
+                2: { id: 2, name: "Обои", price: 800 },
+                3: { id: 3, name: "Краска", price: 500 },
+                4: { id: 4, name: "Плитка", price: 1200 }
+            };
+            
+            // Тестовые заказы
+            orders = {
+                1: { 
+                    id: 1, 
+                    client_id: 1, 
+                    contractor_id: 1, 
+                    object_type_id: 1, 
+                    area: 50, 
+                    materials: [1, 2],
+                    cost: 5800
+                }
+            };
+            
+            nextId = 5;
+            saveToLocalStorage();
+        }
+
+        // Проверка аутентификации
+        function checkAuth() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showApp();
+            } else {
+                showLogin();
+            }
+        }
+
+        // Показать форму входа
+        function showLogin() {
+            const loginContainer = document.getElementById('login-container');
+            const appContainer = document.getElementById('app-container');
+            if (loginContainer) loginContainer.style.display = 'block';
+            if (appContainer) appContainer.classList.add('hidden');
+        }
+
+        // Показать основное приложение
+        function showApp() {
+            const loginContainer = document.getElementById('login-container');
+            const appContainer = document.getElementById('app-container');
+            if (loginContainer) loginContainer.style.display = 'none';
+            if (appContainer) appContainer.classList.remove('hidden');
+            
+            if (currentUser && currentUser.role === 'admin') {
+                switchToAdminMode();
+            } else {
+                switchToUserMode();
+            }
+        }
+
+        // Настройка обработчиков событий
+        function setupEventListeners() {
+            // Кнопка входа
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', handleLogin);
+            }
+            
+            // Кнопка выхода
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', handleLogout);
+            }
+            
+            // Кнопки режимов
+            const userModeBtn = document.getElementById('user-mode-btn');
+            if (userModeBtn) {
+                userModeBtn.addEventListener('click', switchToUserMode);
+            }
+            
+            const adminModeBtn = document.getElementById('admin-mode-btn');
+            if (adminModeBtn) {
+                adminModeBtn.addEventListener('click', switchToAdminMode);
+            }
+            
+            // Кнопки пользователя
+            const createOrderBtn = document.getElementById('create-order-btn');
+            if (createOrderBtn) {
+                createOrderBtn.addEventListener('click', showCreateOrderModal);
+            }
+            
+            const viewOrdersBtn = document.getElementById('view-orders-btn');
+            if (viewOrdersBtn) {
+                viewOrdersBtn.addEventListener('click', listOrders);
+            }
+            
+            // Кнопки администратора
+            const addClientBtn = document.getElementById('add-client-btn');
+            if (addClientBtn) {
+                addClientBtn.addEventListener('click', () => showModal('add-client-modal'));
+            }
+            
+            const addContractorBtn = document.getElementById('add-contractor-btn');
+            if (addContractorBtn) {
+                addContractorBtn.addEventListener('click', () => showModal('add-contractor-modal'));
+            }
+            
+            const addObjectTypeBtn = document.getElementById('add-object-type-btn');
+            if (addObjectTypeBtn) {
+                addObjectTypeBtn.addEventListener('click', () => showModal('add-object-type-modal'));
+            }
+            
+            const addMaterialBtn = document.getElementById('add-material-btn');
+            if (addMaterialBtn) {
+                addMaterialBtn.addEventListener('click', () => showModal('add-material-modal'));
+            }
+            
+            const viewClientsBtn = document.getElementById('view-clients-btn');
+            if (viewClientsBtn) {
+                viewClientsBtn.addEventListener('click', listClients);
+            }
+            
+            const viewContractorsBtn = document.getElementById('view-contractors-btn');
+            if (viewContractorsBtn) {
+                viewContractorsBtn.addEventListener('click', listContractors);
+            }
+            
+            const viewObjectTypesBtn = document.getElementById('view-object-types-btn');
+            if (viewObjectTypesBtn) {
+                viewObjectTypesBtn.addEventListener('click', listObjectTypes);
+            }
+            
+            const viewMaterialsBtn = document.getElementById('view-materials-btn');
+            if (viewMaterialsBtn) {
+                viewMaterialsBtn.addEventListener('click', listMaterials);
+            }
+            
+            // Закрытие модальных окон
+            document.querySelectorAll('.close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', () => {
+                    closeBtn.closest('.modal').style.display = 'none';
+                });
+            });
+            
+            // Обработчики форм
+            const addClientForm = document.getElementById('add-client-form');
+            if (addClientForm) {
+                addClientForm.addEventListener('submit', handleAddClient);
+            }
+            
+            const addContractorForm = document.getElementById('add-contractor-form');
+            if (addContractorForm) {
+                addContractorForm.addEventListener('submit', handleAddContractor);
+            }
+            
+            const addObjectTypeForm = document.getElementById('add-object-type-form');
+            if (addObjectTypeForm) {
+                addObjectTypeForm.addEventListener('submit', handleAddObjectType);
+            }
+            
+            const addMaterialForm = document.getElementById('add-material-form');
+            if (addMaterialForm) {
+                addMaterialForm.addEventListener('submit', handleAddMaterial);
+            }
+            
+            const createOrderForm = document.getElementById('create-order-form');
+            if (createOrderForm) {
+                createOrderForm.addEventListener('submit', handleCreateOrder);
+            }
+            
+            // Закрытие модальных окон при клике вне их
+            window.addEventListener('click', (event) => {
+                if (event.target.classList.contains('modal')) {
+                    event.target.style.display = 'none';
+                }
+            });
+        }
+
+        // Обработчик входа
+        function handleLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username === 'admin' && password === 'admin') {
+                currentUser = { username: 'admin', role: 'admin' };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showApp();
+            } else if (username === 'user' && password === 'user') {
+                currentUser = { username: 'user', role: 'user' };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showApp();
+            } else {
+                showError("Неверные логин или пароль");
+            }
+        }
+
+        // Обработчик выхода
+        function handleLogout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            showLogin();
+        }
+
+        // Переключение режимов
+        function switchToUserMode() {
+            if (currentUser && currentUser.role !== 'user') return;
+            
+            currentMode = 'user';
+            const userButtons = document.getElementById('user-buttons');
+            const adminButtons = document.getElementById('admin-buttons');
+            if (userButtons) userButtons.style.display = 'flex';
+            if (adminButtons) adminButtons.style.display = 'none';
+            showInfo("Переключено в режим пользователя.");
+        }
+
+        function switchToAdminMode() {
+            if (currentUser && currentUser.role !== 'admin') return;
+            
+            currentMode = 'admin';
+            const userButtons = document.getElementById('user-buttons');
+            const adminButtons = document.getElementById('admin-buttons');
+            if (userButtons) userButtons.style.display = 'none';
+            if (adminButtons) adminButtons.style.display = 'flex';
+            showInfo("Переключено в режим администратора.");
+        }
+
+        // Показать модальное окно
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.style.display = 'block';
+        }
+
+        // Функции для работы с клиентами
+        async function handleAddClient(e) {
+            e.preventDefault();
+            
+            try {
+                const name = document.getElementById('client-name').value;
+                const phone = document.getElementById('client-phone').value;
+                const id = nextId++;
+                
+                clients[id] = { id, name, phone };
+                saveToLocalStorage();
+                
+                document.getElementById('add-client-modal').style.display = 'none';
+                showSuccess(`Клиент добавлен: ${name}`);
+                document.getElementById('add-client-form').reset();
+            } catch (error) {
+                showError("Ошибка при добавлении клиента: " + error.message);
+            }
+        }
+
+        function listClients() {
+            const infoArea = document.getElementById('info-area');
+            if (!infoArea) return;
+            
+            infoArea.innerHTML = '';
+            
+            if (Object.keys(clients).length === 0) {
+                infoArea.innerHTML = '<p>Нет доступных клиентов.</p>';
+                return;
+            }
+            
+            Object.values(clients).forEach(client => {
+                const clientDiv = document.createElement('div');
+                clientDiv.className = 'order-item';
+                clientDiv.innerHTML = `
+                    <p><strong>Клиент:</strong> ${client.name}</p>
+                    <p><strong>Телефон:</strong> ${client.phone}</p>
+                    <p><strong>ID:</strong> ${client.id}</p>
+                `;
+                infoArea.appendChild(clientDiv);
+            });
+        }
+
+        // Функции для работы с подрядчиками
+        async function handleAddContractor(e) {
+            e.preventDefault();
+            
+            try {
+                const name = document.getElementById('contractor-name').value;
+                const specialization = document.getElementById('contractor-specialization').value;
+                const id = nextId++;
+                
+                contractors[id] = { id, name, specialization };
+                saveToLocalStorage();
+                
+                document.getElementById('add-contractor-modal').style.display = 'none';
+                showSuccess(`Подрядчик добавлен: ${name}`);
+                document.getElementById('add-contractor-form').reset();
+            } catch (error) {
+                showError("Ошибка при добавлении подрядчика: " + error.message);
+            }
+        }
+
+        function listContractors() {
+            const infoArea = document.getElementById('info-area');
+            if (!infoArea) return;
+            
+            infoArea.innerHTML = '';
+            
+            if (Object.keys(contractors).length === 0) {
+                infoArea.innerHTML = '<p>Нет доступных подрядчиков.</p>';
+                return;
+            }
+            
+            Object.values(contractors).forEach(contractor => {
+                const contractorDiv = document.createElement('div');
+                contractorDiv.className = 'order-item';
+                contractorDiv.innerHTML = `
+                    <p><strong>Подрядчик:</strong> ${contractor.name}</p>
+                    <p><strong>Специализация:</strong> ${contractor.specialization}</p>
+                    <p><strong>ID:</strong> ${contractor.id}</p>
+                `;
+                infoArea.appendChild(contractorDiv);
+            });
+        }
+
+        // Функции для работы с типами объектов
+        async function handleAddObjectType(e) {
+            e.preventDefault();
+            
+            try {
+                const name = document.getElementById('object-type-name').value;
+                const id = nextId++;
+                
+                objectTypes[id] = { id, name };
+                saveToLocalStorage();
+                
+                document.getElementById('add-object-type-modal').style.display = 'none';
+                showSuccess(`Тип объекта добавлен: ${name}`);
+                document.getElementById('add-object-type-form').reset();
+            } catch (error) {
+                showError("Ошибка при добавлении типа объекта: " + error.message);
+            }
+        }
+
+        function listObjectTypes() {
+            const infoArea = document.getElementById('info-area');
+            if (!infoArea) return;
+            
+            infoArea.innerHTML = '';
+            
+            if (Object.keys(objectTypes).length === 0) {
+                infoArea.innerHTML = '<p>Нет доступных типов объектов.</p>';
+                return;
+            }
+            
+            Object.values(objectTypes).forEach(type => {
+                const typeDiv = document.createElement('div');
+                typeDiv.className = 'order-item';
+                typeDiv.innerHTML = `
+                    <p><strong>Тип объекта:</strong> ${type.name}</p>
+                    <p><strong>ID:</strong> ${type.id}</p>
+                `;
+                infoArea.appendChild(typeDiv);
+            });
+        }
+
+        // Функции для работы с материалами
+        async function handleAddMaterial(e) {
+            e.preventDefault();
+            
+            try {
+                const name = document.getElementById('material-name').value;
+                const price = parseFloat(document.getElementById('material-price').value);
+                const id = nextId++;
+                
+                materials[id] = { id, name, price };
+                saveToLocalStorage();
+                
+                document.getElementById('add-material-modal').style.display = 'none';
+                showSuccess(`Материал добавлен: ${name}`);
+                document.getElementById('add-material-form').reset();
+            } catch (error) {
+                showError("Ошибка при добавлении материала: " + error.message);
+            }
+        }
+
+        function listMaterials() {
+            const infoArea = document.getElementById('info-area');
+            if (!infoArea) return;
+            
+            infoArea.innerHTML = '';
+            
+            if (Object.keys(materials).length === 0) {
+                infoArea.innerHTML = '<p>Нет доступных материалов.</p>';
+                return;
+            }
+            
+            Object.values(materials).forEach(material => {
+                const materialDiv = document.createElement('div');
+                materialDiv.className = 'order-item';
+                materialDiv.innerHTML = `
+                    <p><strong>Материал:</strong> ${material.name}</p>
+                    <p><strong>Цена:</strong> ${material.price} руб.</p>
+                    <p><strong>ID:</strong> ${material.id}</p>
+                `;
+                infoArea.appendChild(materialDiv);
+            });
+        }
+
+        // Функции для работы с заказами
+        function showCreateOrderModal() {
+            const modal = document.getElementById('create-order-modal');
+            if (!modal) return;
+            
+            // Заполняем выпадающие списки
+            const clientSelect = document.getElementById('order-client');
+            if (clientSelect) {
+                clientSelect.innerHTML = Object.values(clients).map(client => 
+                    `<option value="${client.id}">${client.name} (${client.phone})</option>`
+                ).join('');
+            }
+            
+            const contractorSelect = document.getElementById('order-contractor');
+            if (contractorSelect) {
+                contractorSelect.innerHTML = Object.values(contractors).map(contractor => 
+                    `<option value="${contractor.id}">${contractor.name} (${contractor.specialization})</option>`
+                ).join('');
+            }
+            
+            const objectTypeSelect = document.getElementById('order-object-type');
+            if (objectTypeSelect) {
+                objectTypeSelect.innerHTML = Object.values(objectTypes).map(type => 
+                    `<option value="${type.id}">${type.name}</option>`
+                ).join('');
+            }
+            
+            const materialsSelect = document.getElementById('order-materials');
+            if (materialsSelect) {
+                materialsSelect.innerHTML = Object.values(materials).map(material => 
+                    `<option value="${material.id}">${material.name} (${material.price} руб.)</option>`
+                ).join('');
+            }
+            
+            const orderCostResult = document.getElementById('order-cost-result');
+            if (orderCostResult) orderCostResult.innerHTML = '';
+            
+            modal.style.display = 'block';
+        }
+
+        function calculateOrderCost(area, materialIds) {
+            // Базовая стоимость (100 руб./м²)
+            const baseCost = area * 100;
+            
+            // Стоимость материалов
+            let materialsCost = 0;
+            materialIds.forEach(matId => {
+                const material = materials[matId];
+                if (material) {
+                    materialsCost += material.price;
+                }
+            });
+            
+            // Итоговая стоимость
+            const totalCost = baseCost + materialsCost;
+            
+            return {
+                baseCost,
+                materialsCost,
+                totalCost
+            };
+        }
+
+        async function handleCreateOrder(e) {
+            e.preventDefault();
+            
+            try {
+                const clientId = parseInt(document.getElementById('order-client').value);
+                const contractorId = parseInt(document.getElementById('order-contractor').value);
+                const objectTypeId = parseInt(document.getElementById('order-object-type').value);
+                const area = parseFloat(document.getElementById('order-area').value);
+                
+                const materialsSelect = document.getElementById('order-materials');
+                const materialIds = Array.from(materialsSelect.selectedOptions).map(option => parseInt(option.value));
+                
+                const costCalculation = calculateOrderCost(area, materialIds);
+                const id = nextId++;
+                
+                orders[id] = { 
+                    id, 
+                    client_id: clientId, 
+                    contractor_id: contractorId, 
+                    object_type_id: objectTypeId, 
+                    area, 
+                    materials: materialIds,
+                    cost: costCalculation.totalCost
+                };
+                
+                saveToLocalStorage();
+                
+                const client = clients[clientId] || { name: "Неизвестный клиент" };
+                const contractor = contractors[contractorId] || { name: "Неизвестный подрядчик" };
+                const objectType = objectTypes[objectTypeId] || { name: "Неизвестный тип" };
+                
+                const materialsList = materialIds.map(matId => {
+                    const material = materials[matId];
+                    return material ? `${material.name} (${material.price} руб.)` : "Неизвестный материал";
+                }).join(", ");
+                
+                const orderCostResult = document.getElementById('order-cost-result');
+                if (orderCostResult) {
+                    orderCostResult.innerHTML = `
+                        <div class="order-item">
+                            <p><strong>Заказ успешно создан!</strong></p>
+                            <p><strong>ID заказа:</strong> ${id}</p>
+                            <p><strong>Клиент:</strong> ${client.name}</p>
+                            <p><strong>Подрядчик:</strong> ${contractor.name}</p>
+                            <p><strong>Тип объекта:</strong> ${objectType.name}</p>
+                            <p><strong>Площадь:</strong> ${area} м²</p>
+                            <p><strong>Материалы:</strong> ${materialsList || "Нет материалов"}</p>
+                            <p><strong>Итоговая стоимость:</strong> ${costCalculation.totalCost} руб.</p>
+                            <p>(Базовая стоимость: ${costCalculation.baseCost} руб. + Материалы: ${costCalculation.materialsCost} руб.)</p>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('create-order-form').reset();
+            } catch (error) {
+                showError("Ошибка при создании заказа: " + error.message);
+            }
+        }
+
+        function listOrders() {
+            const infoArea = document.getElementById('info-area');
+            if (!infoArea) return;
+            
+            infoArea.innerHTML = '';
+            
+            if (Object.keys(orders).length === 0) {
+                infoArea.innerHTML = '<p>Нет доступных заказов.</p>';
+                return;
+            }
+            
+            Object.values(orders).forEach(order => {
+                const client = clients[order.client_id] || { name: "Неизвестный клиент" };
+                const contractor = contractors[order.contractor_id] || { name: "Неизвестный подрядчик" };
+                const objectType = objectTypes[order.object_type_id] || { name: "Неизвестный тип" };
+                
+                const materialsList = order.materials.map(matId => {
+                    const material = materials[matId];
+                    return material ? `${material.name} (${material.price} руб.)` : "Неизвестный материал";
+                }).join(", ");
+                
+                const orderDiv = document.createElement('div');
+                orderDiv.className = 'order-item';
+                orderDiv.innerHTML = `
+                    <p><strong>Заказ ID:</strong> ${order.id}</p>
+                    <p><strong>Клиент:</strong> ${client.name}</p>
+                    <p><strong>Подрядчик:</strong> ${contractor.name}</p>
+                    <p><strong>Тип объекта:</strong> ${objectType.name}</p>
+                    <p><strong>Площадь:</strong> ${order.area} м²</p>
+                    <p><strong>Материалы:</strong> ${materialsList || "Нет материалов"}</p>
+                    <p><strong>Стоимость:</strong> ${order.cost} руб.</p>
+                `;
+                infoArea.appendChild(orderDiv);
+            });
+        }
+
+        // Вспомогательные функции
+        function showInfo(message) {
+            const infoArea = document.getElementById('info-area');
+            if (infoArea) infoArea.innerHTML = `<p>${message}</p>`;
+        }
+
+        function showSuccess(message) {
+            const infoArea = document.getElementById('info-area');
+            if (infoArea) infoArea.innerHTML = `<p style="color: green;">${message}</p>`;
+        }
+
+        function showError(message) {
+            const infoArea = document.getElementById('info-area');
+            if (infoArea) infoArea.innerHTML = `<p style="color: red;">${message}</p>`;
+        }
+    </script>
+</body>
+</html>
